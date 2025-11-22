@@ -5,7 +5,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "set NODE_ENV=development && tsx server/index.ts",
-    "build": "vite build && node -e \"const fs=require('fs'); const path=require('path'); if(fs.existsSync('server/public'))fs.rmSync('server/public',{recursive:true}); fs.mkdirSync('server/public',{recursive:true}); fs.cpSync('client/dist','server/public',{recursive:true});\" && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist && drizzle-kit push --force",
+    "build": "vite build && node -e \"const fs=require('fs'); const path=require('path'); if(fs.existsSync('server/public'))fs.rmSync('server/public',{recursive:true}); fs.mkdirSync('server/public',{recursive:true}); fs.cpSync('client/dist','server/public',{recursive:true});\" && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist && node -e \"if(process.env.DATABASE_URL){require('child_process').execSync('drizzle-kit push --force',{stdio:'inherit'});}else{console.log('Skipping drizzle-kit push - DATABASE_URL not set');}\"",
     "migrate": "node auto-migrate.js",
     "start": "NODE_ENV=production node dist/index.js",
     "check": "tsc",
