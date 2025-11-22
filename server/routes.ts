@@ -357,16 +357,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(400).json({ message: "Каждый вопрос должен содержать text и answers" });
         }
         
-        if (question.answers.length !== 5 && question.answers.length !== 8) {
-          return res.status(400).json({ message: "Количество ответов должно быть 5 или 8" });
+        if (question.answers.length === 0) {
+          return res.status(400).json({ message: "Вопрос должен иметь хотя бы один ответ" });
         }
 
         const correctAnswers = question.answers.filter((a: any) => a.isCorrect);
-        if (question.answers.length === 5 && correctAnswers.length !== 1) {
-          return res.status(400).json({ message: "Для 5 ответов должен быть 1 правильный" });
-        }
-        if (question.answers.length === 8 && correctAnswers.length !== 3) {
-          return res.status(400).json({ message: "Для 8 ответов должно быть 3 правильных" });
+        if (correctAnswers.length === 0) {
+          return res.status(400).json({ message: "Вопрос должен иметь хотя бы один правильный ответ" });
         }
       }
 
