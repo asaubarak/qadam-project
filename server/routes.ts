@@ -403,9 +403,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         subject,  
         questionsCount: bulkData.questions.length 
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Bulk import error:", error);
-      res.status(500).json({ message: "Ошибка массовой загрузки" });
+      const errorMessage = error?.message || String(error) || "Unknown error";
+      res.status(500).json({ 
+        message: "Ошибка массовой загрузки",
+        error: errorMessage,
+        details: error?.stack
+      });
     }
   });
 
