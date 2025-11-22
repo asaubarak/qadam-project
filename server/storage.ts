@@ -13,11 +13,11 @@ import { type User, type InsertUser, type Block, type InsertBlock, type Variant,
          reminders, exportJobs, systemSettings, quotes, subscriptionPlans, userSubscriptions, payments } from "@shared/schema";
 import { randomUUID } from "crypto";
 import session from "express-session";
-import createMemoryStore from "memorystore";
-import { db } from "./db";
+import ConnectPgSimple from "connect-pg-simple";
+import { db, pool } from "./db";
 import { eq, and, desc, sql, count, asc } from "drizzle-orm";
 
-const MemoryStore = createMemoryStore(session);
+const PostgresqlStore = ConnectPgSimple(session);
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -183,9 +183,11 @@ export class DatabaseStorage implements IStorage {
     this.reminders = new Map();
     this.exportJobs = new Map();
     
-    const MemoryStore = createMemoryStore(session);
-    this.sessionStore = new MemoryStore({
-      checkPeriod: 86400000,
+    // Use PostgreSQL session store for persistent sessions
+    this.sessionStore = new PostgresqlStore({
+      pool: pool,
+      tableName: 'session',
+      createTableIfMissing: true
     });
   }
 
