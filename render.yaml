@@ -9,13 +9,12 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      - key: SESSION_SECRET
-        generateValue: true
-    secrets:
       - key: DATABASE_URL
         fromDatabase:
           name: qadam-db
           property: connectionString
+      - key: SESSION_SECRET
+        generateValue: true
     
 databases:
   - name: qadam-db
