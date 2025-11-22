@@ -731,10 +731,10 @@ function SubjectsView({ variant, onSelectSubject }: SubjectsViewProps) {
                 onChange={(e) => setBulkImportJson(e.target.value)}
                 className="w-full h-80 p-3 border rounded-md font-mono text-sm"
                 placeholder={`{
-  "name": "Физика",
+  "name": "Математика",
   "questions": [
     {
-      "text": "Какая формула описывает закон Ома? (5 ответов - single choice)",
+      "text": "Какая формула описывает закон Ома?",
       "answers": [
         { "text": "I = U/R", "isCorrect": true },
         { "text": "U = I/R", "isCorrect": false },
@@ -744,23 +744,23 @@ function SubjectsView({ variant, onSelectSubject }: SubjectsViewProps) {
       ]
     },
     {
-      "text": "Какие из следующих - верны? (8 ответов - multiple choice, выбрать все 3 правильных)",
+      "text": "Какие утверждения верны?",
       "answers": [
-        { "text": "Ответ 1", "isCorrect": true },
-        { "text": "Ответ 2", "isCorrect": true },
-        { "text": "Ответ 3", "isCorrect": true },
-        { "text": "Неправильный 1", "isCorrect": false },
-        { "text": "Неправильный 2", "isCorrect": false },
-        { "text": "Неправильный 3", "isCorrect": false },
-        { "text": "Неправильный 4", "isCorrect": false },
-        { "text": "Неправильный 5", "isCorrect": false }
+        { "text": "Утверждение 1", "isCorrect": true },
+        { "text": "Утверждение 2", "isCorrect": true },
+        { "text": "Утверждение 3", "isCorrect": true },
+        { "text": "Неверно 1", "isCorrect": false },
+        { "text": "Неверно 2", "isCorrect": false },
+        { "text": "Неверно 3", "isCorrect": false },
+        { "text": "Неверно 4", "isCorrect": false },
+        { "text": "Неверно 5", "isCorrect": false }
       ]
     }
   ]
 }`}
               />
               <p className="text-xs text-gray-500 mt-2">
-                💡 Совет: 5 ответов = Single choice (1 балл макс), 8 ответов = Multiple choice (3 балла макс)
+                💡 Логика: Если выбрал ВСЕ правильные ответы и ТОЛЬКО их → 1 балл, иначе → 0 баллов
               </p>
             </div>
             <Button 

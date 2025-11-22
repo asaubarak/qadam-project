@@ -620,36 +620,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         for (const question of questions) {
           totalQuestions++;
           const questionAnswers = await storage.getAnswersByQuestion(question.id);
-          
-          const answerCount = questionAnswers.length;
           const correctAnswers = questionAnswers.filter(a => a.isCorrect);
+          
+          // 1 point per question: all correct answers selected + nothing else
+          totalPoints += 1;
+          
           const userAnswer = answers[question.id];
           
-          // NEW scoring logic
-          if (answerCount === 5) {
-            // Single choice: 1 point max
-            totalPoints += 1;
-            
-            if (userAnswer && !Array.isArray(userAnswer)) {
-              const selectedAnswer = questionAnswers.find(a => a.id === userAnswer);
-              if (selectedAnswer?.isCorrect) {
-                earnedPoints += 1;
-              }
-            }
-          } else if (answerCount === 8) {
-            // Multiple choice: 3 points max (partial credit allowed)
-            totalPoints += 3;
-            
-            if (userAnswer && Array.isArray(userAnswer)) {
-              const selectedAnswers = questionAnswers.filter(a => userAnswer.includes(a.id));
-              const selectedCorrect = selectedAnswers.filter(a => a.isCorrect);
-              const selectedWrong = selectedAnswers.filter(a => !a.isCorrect);
-              
-              // Award points only if no wrong answers
-              if (selectedWrong.length === 0) {
-                earnedPoints += selectedCorrect.length; // 1-3 points
-              }
-            }
+          // Convert to array for uniform handling
+          let selectedIds: string[] = [];
+          if (userAnswer) {
+            selectedIds = Array.isArray(userAnswer) ? userAnswer : [userAnswer];
+          }
+          
+          const selectedAnswers = questionAnswers.filter(a => selectedIds.includes(a.id));
+          const selectedCorrect = selectedAnswers.filter(a => a.isCorrect);
+          const selectedWrong = selectedAnswers.filter(a => !a.isCorrect);
+          
+          // Award 1 point if selected all correct and only correct
+          if (selectedCorrect.length === correctAnswers.length && selectedWrong.length === 0) {
+            earnedPoints += 1;
           }
         }
       }
@@ -738,7 +728,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let totalPoints = 0;
       let earnedPoints = 0;
       
-      console.log('[DEBUG] Starting NEW score calculation for variant:', variantId);
+      console.log('[DEBUG] Starting score calculation for variant:', variantId);
       console.log('[DEBUG] Found subjects:', subjects.length);
       console.log('[DEBUG] User answers:', Object.keys(answers || {}).length, 'answers provided');
       
@@ -749,78 +739,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
         for (const question of questions) {
           totalQuestions++;
           const questionAnswers = await storage.getAnswersByQuestion(question.id);
-          const answerCount = questionAnswers.length;
           const correctAnswers = questionAnswers.filter(a => a.isCorrect);
           
-          // New scoring logic based on answer count:
-          // 5 answers = single choice question = 1 point max
-          // 8 answers = multiple choice question = 1-3 points (based on correct answers selected)
+          // Simple logic: 1 point per question if all correct answers selected and nothing else
+          totalPoints += 1;
           
-          let questionMaxPoints = 0;
-          let questionEarned = 0;
           const userAnswer = answers[question.id];
+          console.log(`[DEBUG] Question ${question.id}: ${questionAnswers.length} answers, ${correctAnswers.length} correct`);
+          console.log(`[DEBUG] User answer:`, userAnswer);
           
-          console.log(`[DEBUG] Question ${question.id}: ${answerCount} answers, ${correctAnswers.length} correct`);
+          // Convert userAnswer to array for uniform handling
+          let selectedIds: string[] = [];
+          if (userAnswer) {
+            selectedIds = Array.isArray(userAnswer) ? userAnswer : [userAnswer];
+          }
           
-          if (answerCount === 5) {
-            // Single choice: exactly 1 correct answer, max 1 point
-            questionMaxPoints = 1;
-            totalPoints += questionMaxPoints;
-            
-            if (userAnswer && !Array.isArray(userAnswer)) {
-              const selectedAnswer = questionAnswers.find(a => a.id === userAnswer);
-              if (selectedAnswer?.isCorrect) {
-                questionEarned = 1;
-                earnedPoints += 1;
-                console.log(`[DEBUG] Single choice - CORRECT! +1 point`);
-              } else {
-                console.log(`[DEBUG] Single choice - WRONG. 0 points`);
-              }
-            } else {
-              console.log(`[DEBUG] Single choice - NO ANSWER`);
-            }
-          } else if (answerCount === 8) {
-            // Multiple choice: 3 correct answers expected
-            // Scoring: 
-            // - All 3 correct + no wrong = 3 points
-            // - 2 correct + no wrong = 2 points  
-            // - 1 correct + no wrong = 1 point
-            // - Any wrong answer = 0 points
-            
-            questionMaxPoints = 3;
-            totalPoints += questionMaxPoints;
-            
-            if (userAnswer && Array.isArray(userAnswer)) {
-              const selectedAnswers = questionAnswers.filter(a => userAnswer.includes(a.id));
-              const selectedCorrect = selectedAnswers.filter(a => a.isCorrect);
-              const selectedWrong = selectedAnswers.filter(a => !a.isCorrect);
-              
-              console.log(`[DEBUG] Multiple choice - selected: ${selectedCorrect.length} correct, ${selectedWrong.length} wrong`);
-              
-              // Award points only if no wrong answers selected
-              if (selectedWrong.length === 0) {
-                // Partial credit: 1 point per correct answer selected (max 3)
-                questionEarned = selectedCorrect.length;
-                earnedPoints += questionEarned;
-                console.log(`[DEBUG] Multiple choice - +${questionEarned} points (${selectedCorrect.length}/${correctAnswers.length} correct)`);
-              } else {
-                console.log(`[DEBUG] Multiple choice - has wrong answers, 0 points`);
-              }
-            } else {
-              console.log(`[DEBUG] Multiple choice - NO ANSWER or invalid format`);
-            }
+          // Check if user selected exactly the correct answers
+          const selectedAnswers = questionAnswers.filter(a => selectedIds.includes(a.id));
+          const selectedCorrect = selectedAnswers.filter(a => a.isCorrect);
+          const selectedWrong = selectedAnswers.filter(a => !a.isCorrect);
+          
+          console.log(`[DEBUG] Selected: ${selectedCorrect.length} correct, ${selectedWrong.length} wrong`);
+          
+          // Award 1 point only if:
+          // 1. Selected all correct answers
+          // 2. Selected ONLY correct answers (no wrong ones)
+          if (selectedCorrect.length === correctAnswers.length && selectedWrong.length === 0) {
+            earnedPoints += 1;
+            console.log(`[DEBUG] ✓ CORRECT! +1 point`);
+          } else {
+            console.log(`[DEBUG] ✗ WRONG. 0 points`);
           }
         }
       }
       
-      console.log(`[DEBUG] Final calculation: ${earnedPoints}/${totalPoints} points = ${earnedPoints/totalPoints*100}%`);
+      console.log(`[DEBUG] Final: ${earnedPoints}/${totalPoints} points = ${earnedPoints/totalPoints*100}%`);
       
       const percentage = totalPoints > 0 ? (earnedPoints / totalPoints) * 100 : 0;
       
       const validatedData = insertTestResultSchema.parse({
         userId: req.user?.id,
         variantId,
-        score: earnedPoints, // Keep for backward compatibility
+        score: earnedPoints,
         totalQuestions,
         percentage,
         timeSpent,
