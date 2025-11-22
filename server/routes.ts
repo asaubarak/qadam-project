@@ -338,7 +338,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Bulk import subject with questions
-  app.post("/api/subjects/bulk-import", requireAuth, async (req, res) => {
+  // Requires either admin auth or API key in header
+  const bulkImportMiddleware = (req: Request, res: Response, next: NextFunction) => {
+    // Check if user is authenticated admin
+    if (req.isAuthenticated() && isAdmin(req.user)) {
+      return next();
+    }
+    
+    // Check for API key in header
+    const apiKey = req.headers['x-api-key'] as string;
+    if (apiKey === process.env.BULK_IMPORT_API_KEY) {
+      return next();
+    }
+    
+    return res.status(401).json({ message: "Требуется авторизация или API ключ" });
+  };
+
+  app.post("/api/subjects/bulk-import", bulkImportMiddleware, async (req, res) => {
     try {
       const { variantId, bulkData } = req.body;
       
