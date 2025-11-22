@@ -729,12 +729,12 @@ function SubjectsView({ variant, onSelectSubject }: SubjectsViewProps) {
                 id="bulkJson"
                 value={bulkImportJson}
                 onChange={(e) => setBulkImportJson(e.target.value)}
-                className="w-full h-64 p-3 border rounded-md font-mono text-sm"
+                className="w-full h-80 p-3 border rounded-md font-mono text-sm"
                 placeholder={`{
   "name": "Физика",
   "questions": [
     {
-      "text": "Какая формула описывает закон Ома?",
+      "text": "Какая формула описывает закон Ома? (5 ответов - single choice)",
       "answers": [
         { "text": "I = U/R", "isCorrect": true },
         { "text": "U = I/R", "isCorrect": false },
@@ -742,10 +742,26 @@ function SubjectsView({ variant, onSelectSubject }: SubjectsViewProps) {
         { "text": "P = U*I", "isCorrect": false },
         { "text": "V = I*R", "isCorrect": false }
       ]
+    },
+    {
+      "text": "Какие из следующих - верны? (8 ответов - multiple choice, выбрать все 3 правильных)",
+      "answers": [
+        { "text": "Ответ 1", "isCorrect": true },
+        { "text": "Ответ 2", "isCorrect": true },
+        { "text": "Ответ 3", "isCorrect": true },
+        { "text": "Неправильный 1", "isCorrect": false },
+        { "text": "Неправильный 2", "isCorrect": false },
+        { "text": "Неправильный 3", "isCorrect": false },
+        { "text": "Неправильный 4", "isCorrect": false },
+        { "text": "Неправильный 5", "isCorrect": false }
+      ]
     }
   ]
 }`}
               />
+              <p className="text-xs text-gray-500 mt-2">
+                💡 Совет: 5 ответов = Single choice (1 балл макс), 8 ответов = Multiple choice (3 балла макс)
+              </p>
             </div>
             <Button 
               onClick={handleBulkImport}

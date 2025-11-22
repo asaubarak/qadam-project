@@ -92,6 +92,10 @@ export const questions = pgTable("questions", {
   imageUrl: text("image_url"), // URL изображения для вопроса
   solutionImageUrl: text("solution_image_url"), // URL изображения с решением (показывается после теста)
   order: integer("order").default(0),
+  // New fields for test specification
+  questionType: text("question_type").default("single_choice"), // single_choice | multiple_choice | matching | context
+  difficultyLevel: text("difficulty_level").default("A"), // A=basic (50%), B=medium (30%), C=advanced (20%)
+  contextId: varchar("context_id"), // For questions that are part of same passage/context
 });
 
 export const answers = pgTable("answers", {
@@ -106,11 +110,13 @@ export const testResults = pgTable("test_results", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id),
   variantId: varchar("variant_id").notNull().references(() => variants.id),
-  score: integer("score").notNull(),
+  score: integer("score").notNull(), // earned points (for backward compatibility)
   totalQuestions: integer("total_questions").notNull(),
   percentage: real("percentage").notNull(),
   timeSpent: integer("time_spent").notNull(),
   answers: jsonb("answers"),
+  earnedPoints: integer("earned_points"), // points earned (replaces score eventually)
+  totalPoints: integer("total_points"), // max possible points
   completedAt: timestamp("completed_at").defaultNow(),
 });
 
