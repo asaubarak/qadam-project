@@ -1,9 +1,10 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import { Express } from "express";
+import { Express, Request, Response, NextFunction } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
+import jwt from "jsonwebtoken";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
 
@@ -14,6 +15,8 @@ declare global {
 }
 
 const scryptAsync = promisify(scrypt);
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+const JWT_EXPIRY = "7d";
 
 export async function hashPassword(password: string) {
   const salt = randomBytes(16).toString("hex");
@@ -26,6 +29,43 @@ async function comparePasswords(supplied: string, stored: string) {
   const hashedBuf = Buffer.from(hashed, "hex");
   const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
   return timingSafeEqual(hashedBuf, suppliedBuf);
+}
+
+export function generateToken(userId: string): string {
+  return jwt.sign({ userId }, JWT_SECRET, { expiresIn: JWT_EXPIRY });
+}
+
+export async function verifyToken(token: string): Promise<{ userId: string } | null> {
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+    return decoded;
+  } catch (error) {
+    return null;
+  }
+}
+
+export function requireJWT(req: Request, res: Response, next: NextFunction) {
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+  
+  if (!token) {
+    return res.status(401).json({ message: "Missing authorization token" });
+  }
+  
+  verifyToken(token).then(decoded => {
+    if (!decoded) {
+      return res.status(401).json({ message: "Invalid or expired token" });
+    }
+    
+    // Load user from database
+    storage.getUser(decoded.userId).then(user => {
+      if (!user) {
+        return res.status(401).json({ message: "User not found" });
+      }
+      req.user = user;
+      next();
+    });
+  });
 }
 
 export function setupAuth(app: Express) {
@@ -94,7 +134,11 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/login", passport.authenticate("local"), (req, res) => {
-    res.status(200).json(req.user);
+    const token = generateToken(req.user!.id);
+    res.status(200).json({
+      user: req.user,
+      token
+    });
   });
 
   app.post("/api/logout", (req, res, next) => {
