@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: eproject-app
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: eproject-db
+          property: connectionString
+      - key: SESSION_SECRET
+        generateValue: true
+    
+databases:
+  - name: eproject-db
+    databaseName: eproject
+    user: eproject_user
+    plan: free

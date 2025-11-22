@@ -1,0 +1,12 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" rx="64" fill="#0f172a"/>
+  <circle cx="256" cy="256" r="200" fill="#3b82f6"/>
+  <g transform="translate(206, 196)">
+    <!-- Graduation cap icon -->
+    <path d="M50 30L100 20L100 60L90 64C85 66 65 66 60 64L50 60V30Z" fill="white"/>
+    <path d="M10 40L50 30V60C50 65 45 70 40 70H20C15 70 10 65 10 60V40Z" fill="white"/>
+    <rect x="45" y="15" width="10" height="25" fill="white"/>
+    <circle cx="55" cy="12" r="3" fill="white"/>
+  </g>
+  <text x="256" y="350" text-anchor="middle" fill="white" font-family="system-ui, -apple-system, sans-serif" font-weight="bold" font-size="48">ЕНТ</text>
+</svg>
