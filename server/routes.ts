@@ -338,7 +338,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Bulk import subject with questions
-  app.post("/api/subjects/bulk-import", requireAdmin, async (req, res) => {
+  app.post("/api/subjects/bulk-import", requireAuth, async (req, res) => {
     try {
       const { variantId, bulkData } = req.body;
       
