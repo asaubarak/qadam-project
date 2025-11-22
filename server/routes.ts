@@ -4,7 +4,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { storage } from "./storage";
-import { setupAuth } from "./auth";
+import { setupAuth, verifyToken, requireJWT } from "./auth";
 import { insertBlockSchema, insertVariantSchema, insertSubjectSchema, insertQuestionSchema, insertAnswerSchema, updateAnswerSchema, insertTestResultSchema,
          insertNotificationSchema, insertNotificationSettingsSchema, insertReminderSchema, notificationTypeSchema,
          analyticsOverviewSchema, subjectAggregateSchema, historyPointSchema, correctnessBreakdownSchema, comparisonStatsSchema,
@@ -17,25 +17,70 @@ import { db } from "./db";
 import { testResults } from "@shared/schema";
 import { desc } from "drizzle-orm";
 
-// Authentication middleware
+// Authentication middleware - supports both session and JWT
 function requireAuth(req: Request, res: Response, next: NextFunction) {
-  if (!req.isAuthenticated()) {
+  // Check session auth first
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  
+  // Check JWT token
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+  
+  if (!token) {
     return res.status(401).json({ message: "Требуется авторизация" });
   }
-  next();
+  
+  verifyToken(token).then(decoded => {
+    if (!decoded) {
+      return res.status(401).json({ message: "Неверный или истекший токен" });
+    }
+    
+    // Load user from database
+    storage.getUser(decoded.userId).then(user => {
+      if (!user) {
+        return res.status(401).json({ message: "Пользователь не найден" });
+      }
+      req.user = user;
+      next();
+    });
+  }).catch(err => {
+    res.status(401).json({ message: "Ошибка проверки токена" });
+  });
 }
 
-// Admin authorization middleware
+// Admin authorization middleware - supports both session and JWT
 function requireAdmin(req: Request, res: Response, next: NextFunction) {
-  if (!req.isAuthenticated()) {
+  // Check session auth first
+  if (req.isAuthenticated() && isAdmin(req.user)) {
+    return next();
+  }
+  
+  // Check JWT token
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+  
+  if (!token) {
     return res.status(401).json({ message: "Требуется авторизация" });
   }
   
-  if (!isAdmin(req.user)) {
-    return res.status(403).json({ message: "Требуются права администратора" });
-  }
-  
-  next();
+  verifyToken(token).then(decoded => {
+    if (!decoded) {
+      return res.status(401).json({ message: "Неверный или истекший токен" });
+    }
+    
+    // Load user from database
+    storage.getUser(decoded.userId).then(user => {
+      if (!user || !isAdmin(user)) {
+        return res.status(403).json({ message: "Требуются права администратора" });
+      }
+      req.user = user;
+      next();
+    });
+  }).catch(err => {
+    res.status(401).json({ message: "Ошибка проверки токена" });
+  });
 }
 
 // Helper function to check if user is admin
@@ -338,23 +383,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Bulk import subject with questions
-  // Requires either admin auth or API key in header
-  const bulkImportMiddleware = (req: Request, res: Response, next: NextFunction) => {
-    // Check if user is authenticated admin
-    if (req.isAuthenticated() && isAdmin(req.user)) {
-      return next();
-    }
-    
-    // Check for API key in header
-    const apiKey = req.headers['x-api-key'] as string;
-    if (apiKey === process.env.BULK_IMPORT_API_KEY) {
-      return next();
-    }
-    
-    return res.status(401).json({ message: "Требуется авторизация или API ключ" });
-  };
-
-  app.post("/api/subjects/bulk-import", bulkImportMiddleware, async (req, res) => {
+  // Requires either admin auth (session) or JWT token
+  app.post("/api/subjects/bulk-import", requireAdmin, async (req, res) => {
     try {
       const { variantId, bulkData } = req.body;
       
